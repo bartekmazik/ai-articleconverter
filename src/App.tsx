@@ -13,7 +13,7 @@ const fetchOpenAIResponse = async (prompt: string) => {
       {
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 100,
+        max_tokens: 3000,
       },
       {
         headers: {
@@ -37,7 +37,7 @@ const extractText = (
     return;
   }
   const file = event.target.files[0];
-  const maxSizeInMB = 0.2;
+  const maxSizeInMB = 1;
   const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
 
   if (file.size > maxSizeInBytes) {
@@ -65,25 +65,35 @@ const Download = (text: string | null) => {
 function App() {
   const [completion, setCompletion] = useState<string | null>("TEXT");
   const [text, setText] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const handleConvert = () => {
+    setIsLoading(true);
+    fetchOpenAIResponse(
+      `${text} - Analyze this text and convert it to html format, but create only the part which will be inside the <body>(dont include the <body> tag in response)tag. Decide where to put images in this text and create appropiate <img> tags with src="image_placeholder.jpg" (dont change it) and set alt to your choice of context cause it will be used to generate images, next generate proper <p> tag with <img> alt content under the previous <img> element.`
+    ).then((response) => {
+      setCompletion(response);
+      setIsLoaded(true);
+      setIsLoading(false);
+    });
+  };
+
   return (
-    <>
+    <div className="container">
       <input
         type="file"
         accept="application/pdf"
         onChange={(event) => extractText(event, setText)}
+        className="upload"
       />
-      <button
-        onClick={() => {
-          fetchOpenAIResponse(`${text} Przeanalizuj ten tekst`).then(
-            (response) => setCompletion(response)
-          );
-        }}
-      >
-        UPLOAD FILE
-      </button>
-      <div>{completion}</div>
-      {Download(completion)}
-    </>
+      {!isLoaded && (
+        <button onClick={handleConvert}>
+          {isLoading ? "Loading..." : "CONVERT"}
+        </button>
+      )}
+      {isLoaded && <div>{Download(completion)}</div>}
+    </div>
   );
 }
 
